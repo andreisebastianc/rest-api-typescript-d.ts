@@ -1,0 +1,13 @@
+[
+    {
+        "resourceName": "dummy",
+        "routes": [
+            {
+                "url": "./docs-dummy.d.ts",
+                "method": "GET",
+                "path": "api/1/dummy",
+                "version": "1"
+            }
+        ]
+    }
+]

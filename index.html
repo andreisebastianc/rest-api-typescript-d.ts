@@ -1,0 +1,75 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="text/javascript" src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+</head>
+<body>
+<ul id="nav"></ul>
+<div class="content">
+    <pre><code class="html">
+    </code></pre>
+</div>
+<style>
+    #nav{
+        float: left;
+        margin: 0;
+        padding: 0;
+        min-width: 300px;
+        max-width: 30%;
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+        overflow-y: auto;
+    }
+    #nav li{
+        padding: 15px;
+    }
+    .content{
+        float: right;
+        margin: 10px;
+        min-width: 700px;
+        width: 70%;
+    }
+    .resource-name{
+        display: block;
+        font-size: 1.5em;
+    }
+    span.hljs-built_in {
+        color: rgb(70, 107, 198);
+    }
+    span.hljs-comment {
+        color: #888;
+    }
+</style>
+<script type="text/javascript">
+
+function buildMenu (arr) {
+    var menuEl = $('#nav');
+
+    arr.forEach(function(descr) {
+        var res = $('<li></li>');
+        var title = $('<span class="resource-name">'+descr.resourceName+'</span>');
+        res.append(title);
+
+        descr.routes.forEach(function(r) {
+            var el = $('<a href="#" class="doc-link" attr-url="'+r.url+'">' +
+                r.method + ' ' +r.path
+            +'</a>');
+            res.append(el);
+        });
+        menuEl.append(res);
+    });
+}
+
+$.get('/config').done(function(res) {
+    buildMenu(JSON.parse(res));
+    $('.doc-link').on('click', function() {
+        $.get('/routes/'+this.getAttribute('attr-url')).done(function(result){
+            $('code')[0].innerHTML = result;
+        });
+    });
+});
+</script>
+</body>
+</html>
