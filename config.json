@@ -3,8 +3,23 @@
         "resourceName": "dummy",
         "routes": [
             {
-                "requestFile": "./docs-dummy.d.ts",
-                "responseFile": "./docs-dummy.d.ts",
+                "interfaces": [
+                    {
+                        "name": "Request Body",
+                        "path": "./docs-dummy.d.ts",
+                        "nestingBasePath": ""
+                    },
+                    {
+                        "name": "Response Body",
+                        "path": "./docs-dummy.d.ts",
+                        "nestingBasePath": ""
+                    },
+                    {
+                        "name": "409 Error",
+                        "path": "./docs-dummy.d.ts",
+                        "nestingBasePath": ""
+                    }
+                ],
                 "method": "GET",
                 "path": "api/1/dummy",
                 "version": "1"

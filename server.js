@@ -2,6 +2,64 @@ var express = require('express');
 var app = express();
 var fs = require('fs');
 var hljs = require('highlight.js');
+var cfg;
+var rgx = new RegExp(/\bimport ([^\s]+) = require\((?:'|")([^'"]+)/g);
+
+function read(path) {
+    return fs.readFileSync(path, 'utf8');
+}
+
+function hl(code) {
+    return hljs.highlight('typescript', code).value;
+}
+
+function strip(code) {
+    return code.replace('interface ', '');
+}
+
+function stripLines(code, number){
+    var lines = code.split('\n');
+    if(number){
+        number += 1; // because of new line between imports and the actual interface
+        lines.splice(0,number);
+    }
+    lines.pop();
+    return lines.join('\n');
+}
+
+function wrapCode(code) {
+    return '<div class="wrapped-code"><pre><code>'+code+'</code></pre></div>';
+}
+
+function title(config) {
+    return '<h1>'+config.method+' '+config.path+'</h1>';
+}
+
+function h2(text) {
+    return '<h2>'+text+'</h2>';
+}
+
+function wrap(code, descriptor) {
+    return h2(descriptor.name) + wrapCode(code);
+}
+
+function extractNested(code) {
+    var matches = [];
+    var match;
+
+    while ( (match = rgx.exec(code)) != null ) {
+        matches.push([match[1], match[2]]);
+    }
+
+    return matches;
+}
+
+function prepare(code, numberOfImportLines) {
+    code = stripLines(code, numberOfImportLines);
+    code = strip(code);
+    code = hl(code);
+    return code;
+}
 
 app.get('/', function (req, res) {
   fs.readFile('index.html', {}, function ( err, data ) {
@@ -13,12 +71,11 @@ app.get('/', function (req, res) {
   });
 });
 
-var cfg;
-
 app.get('/config/', function (req, res) {
 
     if(cfg) {
-        res.end(JSON.restify(cfg));
+        res.end(JSON.stringify(cfg));
+        return;
     }
 
     fs.readFile('./config.json', {}, function ( err, data ) {
@@ -30,56 +87,40 @@ app.get('/config/', function (req, res) {
     });
 });
 
-function read(path) {
-    var code = fs.readFileSync(path, 'utf8');
-    code = strip(code);
-    return hljs.highlight('typescript', code).value;
-}
+function constructCodeFromDescriptor(descriptor) {
+    var code;
+    var nestedCode;
+    var temp;
+    var i;
+    var l;
+    var v;
 
-function strip(code) {
-    return code.replace('export =', '');
-}
+    code = read(descriptor.path);
 
-function wrapCode(code, className) {
-    return '<div class="'+className+'"><pre><code>'+code+'</code></pre></div>';
-}
+    nestedCode = extractNested(code);
+    l = nestedCode.length;
 
-function title(config) {
-    return '<h1>'+config.method+' '+config.path+'</h1>';
-}
+    code = prepare(code, l);
 
-function h2(text) {
-    return '<h2>'+text+'</h2>';
-}
+    for (i = 0; i < l; i ++) {
+        v = nestedCode[i];
 
-function wrap(code, isRequest) {
-    if (isRequest) {
-        return h2('Request') + wrapCode(code, 'request');
-    } else {
-        return h2('Response') + wrapCode(code, 'response');
+        temp = read(descriptor.nestingBasePath + v[1]+'.d.ts');
+        temp = prepare(temp, 0);
+
+        code = code.replace(v[0]+';', v[0]+'<div class="nested">'+temp+'</div>');
     }
+
+    return wrap(code, descriptor);
 }
 
 app.get('/routes/:cat/:pos', function (req, res) {
-    var cat = req.params.cat;
-    var pos = req.params.pos;
-    var reqCode;
-    var resCode;
-    var path;
-    var routes;
+    var routes = cfg[req.params.cat].routes[req.params.pos];
 
-    routes = cfg[cat].routes[pos];
-
-    if(path = routes.requestFile) {
-        reqCode = read(path);
-    }
-
-    if(path = routes.responseFile) {
-        resCode = read(path);
-    }
+    var result = routes.interfaces.map(constructCodeFromDescriptor);
 
     res.setHeader('Content-Type', 'text/html');
-    res.send( title(routes) + wrap(reqCode,true) + wrap(resCode,false) );
+    res.send( title(routes) + result.join('') );
 });
 
 app.listen(9998);
