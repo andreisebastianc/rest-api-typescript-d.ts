@@ -30,11 +30,16 @@
         width: 70%;
     }
     .nested {
+        cursor: pointer;
         background: rgb(245, 255, 228);
         border-radius: 5px;
         border: 1px solid #bbb;
         margin: 5px 0 0 8%;
         padding: 5px 10px;
+    }
+    .nested.minimized{
+        height: 2.125em;
+        overflow: hidden;
     }
     .resource-name{
         display: block;
@@ -48,6 +53,12 @@
     }
 </style>
 <script type="text/javascript">
+
+function bindClicksOnNested() {
+    $(document).off('click.nested').on('click', '.nested', function() {
+        $(this).toggleClass('minimized');
+    });
+}
 
 function buildMenu (arr) {
     var menuEl = $('#nav');
@@ -80,6 +91,7 @@ $.get('/config').done(function(res) {
         var cat = this.getAttribute('attr-cat');
         $.get('/routes/'+cat+'/'+pos).done(function(result){
             $('.content')[0].innerHTML = result;
+            bindClicksOnNested();
         });
     });
 });
