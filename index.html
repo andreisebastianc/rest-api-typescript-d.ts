@@ -7,8 +7,6 @@
 <body>
 <ul id="nav"></ul>
 <div class="content">
-    <pre><code class="html">
-    </code></pre>
 </div>
 <style>
     #nav{
@@ -46,18 +44,24 @@
 
 function buildMenu (arr) {
     var menuEl = $('#nav');
+    var cat = 0;
 
     arr.forEach(function(descr) {
         var res = $('<li></li>');
         var title = $('<span class="resource-name">'+descr.resourceName+'</span>');
         res.append(title);
 
-        descr.routes.forEach(function(r) {
-            var el = $('<a href="#" class="doc-link" attr-url="'+r.url+'">' +
-                r.method + ' ' +r.path
+        var i, l, v, el;
+        for (i = 0, l = descr.routes.length; i < l; i ++) {
+            v = descr.routes[i];
+            el = $('<a href="#" class="doc-link" attr-cat="'+cat+'" attr-pos="'+i+'">' +
+                v.method + ' ' +v.path
             +'</a>');
             res.append(el);
-        });
+        }
+
+        cat++;
+
         menuEl.append(res);
     });
 }
@@ -65,8 +69,10 @@ function buildMenu (arr) {
 $.get('/config').done(function(res) {
     buildMenu(JSON.parse(res));
     $('.doc-link').on('click', function() {
-        $.get('/routes/'+this.getAttribute('attr-url')).done(function(result){
-            $('code')[0].innerHTML = result;
+        var pos = this.getAttribute('attr-pos');
+        var cat = this.getAttribute('attr-cat');
+        $.get('/routes/'+cat+'/'+pos).done(function(result){
+            $('.content')[0].innerHTML = result;
         });
     });
 });
