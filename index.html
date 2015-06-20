@@ -31,15 +31,23 @@
     }
     .nested {
         cursor: pointer;
-        background: rgb(245, 255, 228);
+        background: rgb(202, 224, 240);
         border-radius: 5px;
         border: 1px solid #bbb;
         margin: 5px 0 0 8%;
         padding: 5px 10px;
     }
+    .nested .nested {
+        background: rgb(180, 199, 214);
+    }
     .nested.minimized{
         height: 2.125em;
         overflow: hidden;
+    }
+    .nested.minimized::before{
+        content:  "{collapsed}";
+        color: #5873D6;
+        float: right;
     }
     .resource-name{
         display: block;
@@ -55,8 +63,9 @@
 <script type="text/javascript">
 
 function bindClicksOnNested() {
-    $(document).off('click.nested').on('click', '.nested', function() {
+    $(document).off('click.nested').on('click', '.nested', function(e) {
         $(this).toggleClass('minimized');
+        e.stopPropagation();
     });
 }
 

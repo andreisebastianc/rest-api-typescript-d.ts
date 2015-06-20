@@ -5,7 +5,7 @@ var hljs = require('highlight.js');
 var cfg;
 var rgx = new RegExp(/\bimport ([^\s]+) = require\((?:'|")([^'"]+)/g);
 
-function read(path) {
+function readFile(path) {
     return fs.readFileSync(path, 'utf8');
 }
 
@@ -13,17 +13,21 @@ function hl(code) {
     return hljs.highlight('typescript', code).value;
 }
 
-function strip(code) {
+function stripInterfaceKeywords(code) {
     return code.replace('interface ', '');
 }
 
-function stripLines(code, number){
+function stripLines(code, number) {
     var lines = code.split('\n');
-    if(number){
+
+    if (number) {
         number += 1; // because of new line between imports and the actual interface
         lines.splice(0,number);
     }
-    lines.pop();
+
+    lines.pop(); // remove export= line
+    lines.pop(); // remove export= line
+
     return lines.join('\n');
 }
 
@@ -43,7 +47,7 @@ function wrap(code, descriptor) {
     return h2(descriptor.name) + wrapCode(code);
 }
 
-function extractNested(code) {
+function extractNameAndPathsForNestedScripts(code) {
     var matches = [];
     var match;
 
@@ -56,9 +60,35 @@ function extractNested(code) {
 
 function prepare(code, numberOfImportLines) {
     code = stripLines(code, numberOfImportLines);
-    code = strip(code);
+    code = stripInterfaceKeywords(code);
     code = hl(code);
     return code;
+}
+
+function parseScript(path, basePath) {
+    var code = readFile(path);
+    var nestedCode = extractNameAndPathsForNestedScripts(code);
+    var l = nestedCode.length;
+    var i;
+    var j;
+    var v;
+    var temp;
+    var code;
+
+    code = prepare(code, l);
+
+    for (i = 0; i < l; i ++) {
+        v = nestedCode[i];
+        temp = parseScript(basePath + v[1] + '.d.ts', basePath);
+        code = code.replace(v[0]+';', '<div class="nested">'+temp+'</div>');
+        code = code.replace('&lt;'+v[0]+'&gt;;', '<div class="nested">'+temp+'</div>');
+    }
+
+    return code;
+}
+
+function constructCodeFromDescriptor(descriptor) {
+    return wrap(parseScript(descriptor.path, descriptor.nestingBasePath), descriptor);
 }
 
 app.get('/', function (req, res) {
@@ -86,33 +116,6 @@ app.get('/config/', function (req, res) {
         res.end(data);
     });
 });
-
-function constructCodeFromDescriptor(descriptor) {
-    var code;
-    var nestedCode;
-    var temp;
-    var i;
-    var l;
-    var v;
-
-    code = read(descriptor.path);
-
-    nestedCode = extractNested(code);
-    l = nestedCode.length;
-
-    code = prepare(code, l);
-
-    for (i = 0; i < l; i ++) {
-        v = nestedCode[i];
-
-        temp = read(descriptor.nestingBasePath + v[1]+'.d.ts');
-        temp = prepare(temp, 0);
-
-        code = code.replace(v[0]+';', v[0]+'<div class="nested">'+temp+'</div>');
-    }
-
-    return wrap(code, descriptor);
-}
 
 app.get('/routes/:cat/:pos', function (req, res) {
     var routes = cfg[req.params.cat].routes[req.params.pos];
